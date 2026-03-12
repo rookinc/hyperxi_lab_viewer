@@ -1,0 +1,10 @@
+[project]
+name = "hyperxi-lab-viewer"
+version = "0.1.0"
+description = "Research instrument for HyperXi transport and chamber-graph exploration"
+readme = "README.md"
+requires-python = ">=3.13"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
