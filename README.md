@@ -1,8 +1,13 @@
 # hyperxi_lab_viewer
 
-Minimal hello-world scaffold for the HyperXi lab viewer.
+Early lab scaffold for HyperXi transport and chamber-graph exploration.
 
-Purpose:
-- host transport experiments
-- explore Petrie structure
-- inspect chamber graph invariants
+Current status:
+- package scaffold
+- Tkinter app shell
+- 3-pane lab layout
+- object explorer
+- report console
+
+Run:
+python3 run.py
