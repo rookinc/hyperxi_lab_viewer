@@ -17,6 +17,7 @@ class HyperXiState:
         self.chamber_degree = 4
         self.default_word = "FSF"
         self.petrie_word = "SV"
+        self.thalion_word = "FSF"
 
     def summary(self) -> list[str]:
         return [
@@ -28,4 +29,5 @@ class HyperXiState:
             f"chamber graph degree: {self.chamber_degree}",
             f"default word: {self.default_word}",
             f"petrie word: {self.petrie_word}",
+            f"thalion word: {self.thalion_word}",
         ]

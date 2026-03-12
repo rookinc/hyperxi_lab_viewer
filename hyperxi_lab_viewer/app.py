@@ -6,6 +6,8 @@ from tkinter.scrolledtext import ScrolledText
 
 from .state import HyperXiState
 from .transport import Flag, cycle_lengths, summary, orbit_length
+from .thalions import build_thalions, summary as thalion_summary
+from .chamber_graph import build_chamber_graph, summary as chamber_graph_summary
 
 
 class HyperXILabViewerApp:
@@ -210,22 +212,6 @@ class HyperXILabViewerApp:
         for child in self.main_content_frame.winfo_children():
             child.destroy()
 
-
-    def _handle_special_view(self, label: str) -> bool:
-        if label == "Word Explorer":
-            self.main_title_var.set("Word Explorer")
-            self._render_word_explorer()
-            self._run_word_explorer()
-            return True
-
-        if label == "Petrie Cycles":
-            self.main_title_var.set("Petrie Cycles")
-            self._render_petrie_cycles()
-            self.status_var.set("Viewing: Petrie Cycles")
-            return True
-
-        return False
-
     def _render_text_view(self, body: str) -> None:
         self._clear_main_content()
 
@@ -299,6 +285,35 @@ class HyperXILabViewerApp:
         for line in lines:
             self.log(line)
 
+    def _render_thalions(self) -> None:
+        self._clear_main_content()
+
+        if self.main_content_frame is None:
+            return
+
+        word = self.state.thalion_word
+        thalions = build_thalions(word)
+        lines = thalion_summary(word)
+
+        preview_lines = lines + ["", "first 5 thalions:"]
+        for thalion in thalions[:5]:
+            preview_lines.append(
+                f"T{thalion.id}: {thalion.members[0]} <-> {thalion.members[1]}"
+            )
+
+        result = ttk.Label(
+            self.main_content_frame,
+            text="\n".join(preview_lines),
+            justify="left",
+            wraplength=520,
+        )
+        result.pack(anchor="w")
+
+        self.log("")
+        self.log("[thalions]")
+        for line in preview_lines:
+            self.log(line)
+
     def _on_run_word(self, event: tk.Event) -> None:
         self._run_word_explorer()
 
@@ -330,6 +345,60 @@ class HyperXILabViewerApp:
             self.log(f"error: {exc}")
             self.status_var.set("Word Explorer error")
 
+    def _render_chamber_graph(self) -> None:
+        self._clear_main_content()
+
+        if self.main_content_frame is None:
+            return
+
+        graph = build_chamber_graph()
+        lines = chamber_graph_summary()
+
+        deg_map = graph.degree_map()
+        preview_lines = lines + ["", "first 10 vertex degrees:"]
+        for vid in list(graph.vertices)[:10]:
+            preview_lines.append(f"v{vid}: degree {deg_map[vid]}")
+
+        result = ttk.Label(
+            self.main_content_frame,
+            text="\n".join(preview_lines),
+            justify="left",
+            wraplength=520,
+        )
+        result.pack(anchor="w")
+
+        self.log("")
+        self.log("[chamber graph]")
+        for line in preview_lines:
+            self.log(line)
+
+
+    def _handle_special_view(self, label: str) -> bool:
+        if label == "Word Explorer":
+            self.main_title_var.set("Word Explorer")
+            self._render_word_explorer()
+            self._run_word_explorer()
+            return True
+
+        if label == "Petrie Cycles":
+            self.main_title_var.set("Petrie Cycles")
+            self._render_petrie_cycles()
+            self.status_var.set("Viewing: Petrie Cycles")
+            return True
+
+        if label == "Thalions":
+            self.main_title_var.set("Thalions")
+            self._render_thalions()
+            self.status_var.set("Viewing: Thalions")
+            return True
+
+        if label == "Chamber Graph":
+            self.main_title_var.set("Chamber Graph")
+            self._render_chamber_graph()
+            self.status_var.set("Viewing: Chamber Graph")
+            return True
+
+        return False
 
     def log(self, message: str) -> None:
         if self.report_console is None:
