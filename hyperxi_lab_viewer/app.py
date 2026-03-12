@@ -5,8 +5,7 @@ from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 
 from .state import HyperXiState
-from .transport import Flag, orbit_length, summary
-from .transport import Flag, orbit_length, summary
+from .transport import Flag, cycle_lengths, summary, orbit_length
 
 
 class HyperXILabViewerApp:
@@ -219,6 +218,12 @@ class HyperXILabViewerApp:
             self._run_word_explorer()
             return True
 
+        if label == "Petrie Cycles":
+            self.main_title_var.set("Petrie Cycles")
+            self._render_petrie_cycles()
+            self.status_var.set("Viewing: Petrie Cycles")
+            return True
+
         return False
 
     def _render_text_view(self, body: str) -> None:
@@ -263,6 +268,36 @@ class HyperXILabViewerApp:
         result.pack(anchor="w")
 
         word_entry.focus_set()
+
+    def _render_petrie_cycles(self) -> None:
+        self._clear_main_content()
+
+        if self.main_content_frame is None:
+            return
+
+        word = self.state.petrie_word
+        lengths = cycle_lengths(word)
+        total_flags = sum(lengths)
+
+        lines = [
+            f"petrie word: {word}",
+            f"cycles: {len(lengths)}",
+            f"cycle lengths: {lengths}",
+            f"flags covered: {total_flags}",
+        ]
+
+        result = ttk.Label(
+            self.main_content_frame,
+            text="\n".join(lines),
+            justify="left",
+            wraplength=520,
+        )
+        result.pack(anchor="w")
+
+        self.log("")
+        self.log("[petrie cycles]")
+        for line in lines:
+            self.log(line)
 
     def _on_run_word(self, event: tk.Event) -> None:
         self._run_word_explorer()
