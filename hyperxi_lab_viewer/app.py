@@ -4,6 +4,10 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 
+from .state import HyperXiState
+from .transport import Flag, orbit_length, summary
+from .transport import Flag, orbit_length, summary
+
 
 class HyperXILabViewerApp:
     def __init__(self) -> None:
@@ -12,13 +16,19 @@ class HyperXILabViewerApp:
         self.root.geometry("1200x720")
         self.root.minsize(900, 560)
 
+        self.state = HyperXiState()
+
         self.tree: ttk.Treeview | None = None
         self.main_title_var = tk.StringVar(value="Main View")
         self.main_body_var = tk.StringVar(value="Select an object from the explorer.")
         self.report_console: ScrolledText | None = None
+        self.main_content_frame: ttk.Frame | None = None
+        self.word_var = tk.StringVar(value=self.state.default_word)
+        self.word_result_var = tk.StringVar(value="Select Word Explorer to run a transport word.")
 
         self._configure_style()
         self._build_ui()
+        self._render_text_view(self.main_body_var.get())
         self._populate_tree()
         self._boot_log()
 
@@ -92,8 +102,13 @@ class HyperXILabViewerApp:
         )
         main_title.pack(anchor="w", pady=(0, 12))
 
+        content = ttk.Frame(card)
+        content.pack(fill="both", expand=True)
+
+        self.main_content_frame = content
+
         main_body = ttk.Label(
-            card,
+            content,
             textvariable=self.main_body_var,
             justify="left",
             wraplength=520,
@@ -136,14 +151,16 @@ class HyperXILabViewerApp:
     def _boot_log(self) -> None:
         self.log("HyperXi Lab Viewer v0.1")
         self.log("--------------------------------")
-        self.log("Lab shell initialized.")
-        self.log("Explorer loaded.")
-        self.log("Main view ready.")
-        self.log("Report console ready.")
+
+        for line in self.state.summary():
+            self.log(line)
+
         self.log("")
-        self.log("Planned next:")
-        self.log("- state model")
+        self.log("Lab shell initialized.")
+        self.log("")
+        self.log("Next:")
         self.log("- transport kernel")
+        self.log("- Petrie cycle explorer")
         self.log("- chamber graph inspector")
         self.status_var.set("Lab initialized.")
 
@@ -158,8 +175,11 @@ class HyperXILabViewerApp:
         item_id = selection[0]
         label = self.tree.item(item_id, "text")
 
-        self.main_title_var.set(label)
-        self.main_body_var.set(self._describe_node(label))
+        handled = self._handle_special_view(label)
+        if not handled:
+            self.main_title_var.set(label)
+            self._render_text_view(self._describe_node(label))
+
         self.log(f"Selected: {label}")
         self.status_var.set(f"Viewing: {label}")
 
@@ -183,6 +203,98 @@ class HyperXILabViewerApp:
             "Antipodes": "Distance-6 structure and unique antipodal behavior.",
         }
         return descriptions.get(label, "No description available yet.")
+
+    def _clear_main_content(self) -> None:
+        if self.main_content_frame is None:
+            return
+
+        for child in self.main_content_frame.winfo_children():
+            child.destroy()
+
+
+    def _handle_special_view(self, label: str) -> bool:
+        if label == "Word Explorer":
+            self.main_title_var.set("Word Explorer")
+            self._render_word_explorer()
+            self._run_word_explorer()
+            return True
+
+        return False
+
+    def _render_text_view(self, body: str) -> None:
+        self._clear_main_content()
+
+        if self.main_content_frame is None:
+            return
+
+        main_body = ttk.Label(
+            self.main_content_frame,
+            text=body,
+            justify="left",
+            wraplength=520,
+        )
+        main_body.pack(anchor="w")
+
+    def _render_word_explorer(self) -> None:
+        self._clear_main_content()
+
+        if self.main_content_frame is None:
+            return
+
+        controls = ttk.Frame(self.main_content_frame)
+        controls.pack(anchor="w", fill="x", pady=(0, 12))
+
+        word_label = ttk.Label(controls, text="Word:")
+        word_label.pack(side="left")
+
+        word_entry = ttk.Entry(controls, textvariable=self.word_var, width=20)
+        word_entry.pack(side="left", padx=(8, 8))
+        word_entry.bind("<Return>", self._on_run_word)
+
+        run_button = ttk.Button(controls, text="Run", command=self._run_word_explorer)
+        run_button.pack(side="left")
+
+        result = ttk.Label(
+            self.main_content_frame,
+            textvariable=self.word_result_var,
+            justify="left",
+            wraplength=520,
+        )
+        result.pack(anchor="w")
+
+        word_entry.focus_set()
+
+    def _on_run_word(self, event: tk.Event) -> None:
+        self._run_word_explorer()
+
+    def _run_word_explorer(self) -> None:
+        word = self.word_var.get().strip().upper()
+        seed = Flag(face=0, slot=0, orient=0)
+
+        try:
+            lines = [
+                f"seed: {seed}",
+                "",
+                *summary(word),
+                f"orbit length from seed: {orbit_length(seed, word)}",
+            ]
+            self.word_result_var.set("\n".join(lines))
+
+            self.log("")
+            self.log("[word explorer]")
+            self.log(f"word: {word}")
+            self.log(f"seed: {seed}")
+            self.log(f"orbit length from seed: {orbit_length(seed, word)}")
+
+            self.status_var.set(f"Viewing: Word Explorer ({word})")
+        except Exception as exc:
+            self.word_result_var.set(f"Error: {exc}")
+            self.log("")
+            self.log("[word explorer error]")
+            self.log(f"word: {word}")
+            self.log(f"error: {exc}")
+            self.status_var.set("Word Explorer error")
+
 
     def log(self, message: str) -> None:
         if self.report_console is None:
